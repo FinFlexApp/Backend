@@ -7,21 +7,25 @@ from db.Tests.chapter import Chapter
 from db.Score.userTestAttempt import UserTestAttempt
 from db import db_session
 import datetime
+from flask_cors import CORS, cross_origin
 
 db_session.global_init("db/users.db")
 
 # ________login________
 app = Flask(__name__)
+cors = CORS(app)
 SECRET_KEY = os.environ.get('SECRET_KEY') or 'this is a secret'
 app.config['SECRET_KEY'] = SECRET_KEY
-
+app.config['CORS_HEADERS'] = 'Content-Type'
 
 @app.route("/")
+@cross_origin()
 def hello():
     return "Hello World!"
 
 
 @app.route("/users/register", methods=["POST"])
+@cross_origin()
 def add_user():
     session = db_session.create_session()
     try:
@@ -65,6 +69,7 @@ def add_user():
 
 
 @app.route("/users/login", methods=["POST"])
+@cross_origin()
 def login():
     try:
         datauser = request.json
@@ -113,6 +118,7 @@ def login():
 
 @app.route("/users/", methods=["GET"])
 @token_required
+@cross_origin()
 def get_current_user(current_user):
     return jsonify({
         "message": "successfully retrieved user profile",
@@ -121,6 +127,7 @@ def get_current_user(current_user):
 
 
 @app.errorhandler(403)
+@cross_origin()
 def forbidden(e):
     return jsonify({
         "message": "Forbidden",
@@ -130,6 +137,7 @@ def forbidden(e):
 
 
 @app.errorhandler(404)
+@cross_origin()
 def forbidden(e):
     return jsonify({
         "message": "Endpoint Not Found",
@@ -141,6 +149,7 @@ def forbidden(e):
 # ________Test________
 @app.route("/test/getchapters", methods=["POST"])
 @token_required
+@cross_origin()
 def getchapters():
     user_id = request.json['user_id']
     session = db_session.create_session()
