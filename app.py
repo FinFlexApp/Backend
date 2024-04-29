@@ -139,7 +139,7 @@ def forbidden(e):
 
 
 # ________Test________
-@app.route("/test/getchapters", methods=["GET"])
+@app.route("/test/getchapters", methods=["POST"])
 @token_required
 def getchapters():
     user_id = request.json['user_id']
