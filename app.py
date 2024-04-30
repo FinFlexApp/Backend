@@ -9,8 +9,12 @@ from db.Requires.userChapterAccess import UserChapterAccess
 from db.Score.userTestAttempt import UserTestAttempt
 from db import db_session
 import datetime
-from flask_cors import CORS, cross_origin
+from flask_cors import CORS
 import json
+from db.news import News
+from db.Tests.questionAnswer import QuestionAnswer
+from db.Tests.chapterTest import ChapterTest
+from db.Tests.testQuestion import TestQuestion
 
 db_session.global_init("db/users.db")
 
@@ -204,6 +208,74 @@ def GetChapterTests():
         answer[-1]["max_score"] = i.testScore[0].max_score
         answer[-1]["img_src"] = i.testAttachments[0].source_url
 
+    session.close()
+    return answer
+
+
+@app.route("/test/getQuestionsList", methods=["POST"])
+@token_required
+def getQuestionsList():
+    session = db_session.create_session()
+    test_id = json.loads(request.data)['test_id']
+    answer = []
+    for i in session.query(ChapterTest).filter(ChapterTest.id == test_id).first().testQuestions:
+        answer.append({})
+        answer[-1]["quesetion_id"] = i.id
+        answer[-1]["quesetion_seq"] = i.sequence
+        answer[-1]["quesetion_text"] = i.text
+    return answer
+
+
+@app.route("/test/getQuestion", methods=["POST"])
+@token_required
+def getQuestion():
+    session = db_session.create_session()
+    question_id = json.loads(request.data)['question_id']
+    question = session.query(TestQuestion).filter(TestQuestion.id == question_id).first()
+    return question
+
+
+@app.route("/test/getFirstQuestion", methods=["POST"])
+@token_required
+def getFirstQuestion():
+    session = db_session.create_session()
+    test_id = json.loads(request.data)['test_id']
+    answer = []
+    for i in session.query(ChapterTest).filter(ChapterTest.id == test_id).first().testQuestions:
+        answer.append(i)
+    answer = sorted(answer, key=lambda x: x.sequence)
+    print(answer[0])
+    return answer[0]
+
+
+@app.route("/test/getNextQuestion", methods=["POST"])
+@token_required
+def getNextQuestion():
+    session = db_session.create_session()
+    question_id = json.loads(request.data)['question_id']
+    question = session.query(TestQuestion).filter(TestQuestion.id == question_id).first()
+    answer = []
+    for i in session.query(ChapterTest).filter(ChapterTest.id == question.chapterTest[0].id).first().testQuestions:
+        answer.append(i)
+    answer = sorted(answer, key=lambda x: x.sequence)
+    if len(answer) == question.sequence:
+        return None
+    else:
+        return answer[question.sequence]
+
+
+# __News__
+@app.route("/news", methods=["GET"])
+@token_required
+def news():
+    session = db_session.create_session()
+    answer = []
+    for i in session.query(News).all():
+        answer.append({})
+        answer[-1]['title'] = i.title
+        answer[-1]['preview_src'] = i.preview_src
+        answer[-1]['text'] = i.text
+        answer[-1]['date'] = i.date
     session.close()
     return answer
 

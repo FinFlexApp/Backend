@@ -11,6 +11,11 @@ from db.Tests.testAttachment import TestAttachment
 from db.Tests.mediaTypes import MediaType
 from db.Requires.userChapterAccess import UserChapterAccess
 from db.Requires.userTestAccess import UserTestAccess
+from db.Tests.questionAnswer import QuestionAnswer
+from db.Tests.testQuestion import TestQuestion
+from db.Tests.questionAttachment import QuestionAttachment
+from db.news import News
+
 db_session.global_init("db/users.db")
 chapters_data = [
     {'sequence': 1, 'name': 'Chapter 1', 'description': 'Description for Chapter 1',
@@ -134,6 +139,49 @@ for test_id in test_ids:
     user_test_access = UserTestAccess(user_id=user_id, test_id=test_id, date=datetime.now())
     session.add(user_test_access)
 
+# ID теста, для которого будут созданы вопросы
+test_id = 1
+
+# Создаем вопросы для теста
+questions_data = [
+    {"sequence": 1, "text": "Question 1", "multiple_choice": True},
+    {"sequence": 2, "text": "Question 2", "multiple_choice": False},
+    {"sequence": 3, "text": "Question 3", "multiple_choice": True}
+]
+
+for question_data in questions_data:
+    question = TestQuestion(test_id=test_id, **question_data)
+    session.add(question)
+    session.flush()  # Получаем ID только что добавленного вопроса
+
+    # Создаем ответы для вопроса
+    if question_data["multiple_choice"]:
+        answers_data = [
+            {"text": "Answer 1", "isRight": True},
+            {"text": "Answer 2", "isRight": False},
+            {"text": "Answer 3", "isRight": True}
+        ]
+        for answer_data in answers_data:
+            answer = QuestionAnswer(question_id=question.id, **answer_data)
+            session.add(answer)
+
+    # Создаем вложения для вопроса
+    attachment_data = {"media_type": 1, "source_url": "http://example.com/image.jpg"}
+    attachment = QuestionAttachment(question_id=question.id, **attachment_data)
+    session.add(attachment)
+
+news_data = [
+    {"title": "Новость 1", "preview_src": "http://example.com/image1.jpg", "text": "Текст новости 1",
+     "date": datetime.now()},
+    {"title": "Новость 2", "preview_src": "http://example.com/image2.jpg", "text": "Текст новости 2",
+     "date": datetime.now()},
+    {"title": "Новость 3", "preview_src": "http://example.com/image3.jpg", "text": "Текст новости 3",
+     "date": datetime.now()},
+]
+
+for news_item in news_data:
+    news = News(**news_item)
+    session.add(news)
 # Сохранение изменений
 session.commit()
 

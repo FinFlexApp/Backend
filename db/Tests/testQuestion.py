@@ -14,3 +14,4 @@ class TestQuestion(SqlAlchemyBase):
     multiple_choice = sqlalchemy.Column(sqlalchemy.Boolean)
     chapterTest = orm.relationship('ChapterTest')
     questionAnswers = orm.relationship("QuestionAnswer", backref='testQuestions')
+    questionAttachment = orm.relationship("QuestionAttachment", backref='testQuestions')
