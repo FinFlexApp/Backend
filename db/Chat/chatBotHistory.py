@@ -9,7 +9,7 @@ class ChatBotHistory(SqlAlchemyBase):
                            primary_key=True, autoincrement=True)
     user_id = sqlalchemy.Column(sqlalchemy.INTEGER, sqlalchemy.ForeignKey("users.id"))
     text = sqlalchemy.Column(sqlalchemy.TEXT)
-    date = sqlalchemy.Column(sqlalchemy.DateTime)
+    date = sqlalchemy.Column(sqlalchemy.DATETIME)
     isReplay = sqlalchemy.Column(sqlalchemy.Boolean)
 
     user = orm.relationship('User')

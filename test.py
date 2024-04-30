@@ -1,19 +1,19 @@
 import requests
 from json import dumps
 
-# #
-# # ____login_____
-# print(requests.post("http://127.0.0.1:5000/users/register",
-#                     data=dumps({"email": "12@1.ru", "nickname": "meow", "firstname": "meow", "surname": "meow",
-#                                 "password": "AbcabgGRGRbhdt4523tgrc12!!!!"}),
-#                     headers={"Content-Type": "application/json"}).json())
 #
-# b = requests.post("http://127.0.0.1:5000/users/login",
-#                   data=dumps({"email": "12@1.ru",
-#                               "password": "AbcabgGRGRbhdt4523tgrc12!!!!"}),
-#                   headers={"Content-Type": "application/json"}).json()
-# print(b)
-#
+# ____login_____
+print(requests.post("http://127.0.0.1:5000/users/register",
+                   data=dumps({"email": "12@1.ru", "nickname": "meow", "firstname": "meow", "surname": "meow",
+                               "password": "AbcabgGRGRbhdt4523tgrc12!!!!"}),
+                   headers={"Content-Type": "application/json"}).json())
+
+b = requests.post("http://127.0.0.1:5000/users/login",
+                 data=dumps({"email": "12@1.ru",
+                             "password": "AbcabgGRGRbhdt4523tgrc12!!!!"}),
+                 headers={"Content-Type": "application/json"}).json()
+print(b)
+
 # # # ____Test_____
 # b = requests.post("http://127.0.0.1:5000/test/getchapters",
 #                   data=dumps({"user_id": 11}), headers={"Content-Type": "application/json",
@@ -25,8 +25,8 @@ from json import dumps
 #
 # print(b.text)
 #
-# print(requests.get("http://127.0.0.1:5000/news", headers={
-#     "Authorization": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxMX0.00KV-iWi85eL-CZC4w5Ma2r0_dMw8ohjbjDkStIIXfQ"}).json())
+#print(requests.get("http://127.0.0.1:5000/news", headers={
+#    "Authorization": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxMX0.00KV-iWi85eL-CZC4w5Ma2r0_dMw8ohjbjDkStIIXfQ"}).json())
 #
 # print(requests.post("http://127.0.0.1:5000/test/getQuestionsList", data=dumps({"test_id": 1}), headers={
 #     "Authorization": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxMX0.00KV-iWi85eL-CZC4w5Ma2r0_dMw8ohjbjDkStIIXfQ"}).json())
@@ -39,5 +39,8 @@ from json import dumps
 # print(requests.post("http://127.0.0.1:5000/test/getNextQuestion", data=dumps({"question_id": 1}), headers={
 #     "Authorization": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxMX0.00KV-iWi85eL-CZC4w5Ma2r0_dMw8ohjbjDkStIIXfQ"}).json())
 
-print(requests.post("http://127.0.0.1:5000/token", data=dumps({"user_id": 1}), headers={
-    "Authorization": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxMX0.00KV-iWi85eL-CZC4w5Ma2r0_dMw8ohjbjDkStIIXfQ"}).json())
+# print(requests.post("http://127.0.0.1:5000/token", data=dumps({"user_id": 1}), headers={
+#     "Authorization": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxX0.00KV-iWi85eL-CZC4w5Ma2r0_dMw8ohjbjDkStIIXfQ"}).json())
+
+print(requests.post("http://127.0.0.1:5000/Bot/SendMessage", data=dumps({"user_id": 11, "text": "Кто ты?"}), headers={
+    "Authorization": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxMX0.00KV-iWi85eL-CZC4w5Ma2r0_dMw8ohjbjDkStIIXfQ"}))

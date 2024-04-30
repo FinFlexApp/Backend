@@ -16,9 +16,11 @@ from db.Chat.chatBotHistory import ChatBotHistory
 from db.Tests.questionAnswer import QuestionAnswer
 from db.Tests.chapterTest import ChapterTest
 from db.Tests.testQuestion import TestQuestion
-import openai
+from openai import OpenAI
 
-openai.my_api_key = ''
+client = OpenAI(
+    api_key='',
+)
 db_session.global_init("db/users.db")
 
 # ________login________
@@ -341,6 +343,7 @@ def news():
 @app.route("/Bot/SendMessage", methods=["POST"])
 @token_required
 def sendMessage():
+    print(1)
     messages = [{"role": "system",
                  "content": "Ты финансовый эксперт для детей, которые начинают изучать финасовую граммотность, будь вежлив"}]
     user_id = json.loads(request.data)['user_id']
@@ -349,8 +352,10 @@ def sendMessage():
     old_messages = session.query(User).filter(User.id == user_id).first().chatBotHistories
     for i in old_messages:
         messages.append({"role": "system" if i.isReplay else "user", "content": i.text})
-    chat = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo", messages={"role": "user", "content": "User : " + text}
+    messages.append({"role": "user", "content": "User : " + text})
+    chat = client.chat.completions.create(
+        messages=messages,
+        model="gpt-3.5-turbo",
     )
     reply = chat.choices[0].message.content
     ch = ChatBotHistory(user_id=user_id, text=text, date=datetime.datetime.now(), isReplay=False)
