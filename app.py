@@ -15,9 +15,12 @@ from db.news import News
 from db.Chat.chatBotHistory import ChatBotHistory
 from db.Tests.questionAnswer import QuestionAnswer
 from db.Tests.chapterTest import ChapterTest
+from db.Requires.ChapterRequires import ChapterRequire
+from db.Requires.TestRequires import TestRequire
 from db.Tests.testQuestion import TestQuestion
-from langchain.schema import HumanMessage, SystemMessage
+from langchain.schema import HumanMessage, SystemMessage, AIMessage
 from langchain.chat_models.gigachat import GigaChat
+from db.Score.leaderBoard import LeaderBoard
 
 chat = GigaChat(
     credentials='',
@@ -67,6 +70,21 @@ def add_user():
         )
         user.set_password(datauser["password"])
         session.add(user)
+        session.commit()
+        userChapterAccesses = UserChapterAccess(
+            user_id=user.id,
+            chapter_id=1,
+            data=datetime.datetime.now()
+        )
+        session.add(userChapterAccesses)
+        session.commit()
+        userTestAccesses = UserTestAccess(
+            user_id=user.id,
+            test_id=1,
+            data=datetime.datetime.now()
+        )
+        session.add(userTestAccesses)
+        session.commit()
         session.commit()
         return {
             "message": "Successfully created new user",
@@ -309,16 +327,49 @@ def getNextQuestion():
 def sendAnswers():
     answer = {}
     session = db_session.create_session()
+    user_id = json.loads(request.data)['user_id']
     test_id = json.loads(request.data)['test_id']
     answers = json.loads(request.data)['submitted_answers']
+    all_count = 0
+    right_count = 0
     for i in answers:
+        all_count += 1
         question = session.query(TestQuestion).filter(TestQuestion.id == i["question_id"]).first()
         if question.multiple_choice:
-            print(i[""])
-            print(question.questionAnswers)
+            if sorted(i["chosen_answers_ids"]) == sorted(
+                    list(map(lambda x: x.id, filter(lambda x: x.isRight == True, question.questionAnswers)))):
+                right_count += 1
         else:
-            print(question.questionAnswers)
+            if i["chosen_answers_ids"][0] == list(filter(lambda x: x.isRight == True, question.questionAnswers))[0].id:
+                right_count += 1
+    tl = UserTestAttempt(
+        user_id=user_id,
+        test_id=test_id,
+        data=datetime.datetime.now(),
+        right_percent=right_count / all_count
+    )
+    a = session.query(ChapterTest).filter(ChapterTest.id == test_id).first().chapter.chapterTests
+    count_tests = 0
+    for i in a:
+        if session.query(UserTestAttempt).filter(UserTestAttempt.test_id == i.id, UserTestAttempt.user_id == user_id):
+            count_tests += 1
+    if count_tests == len(a):
+        pass
+    for i in session.query(TestRequire).filter(TestRequire.required_test_id == test_id).all():
+        session.add(tl)
+        session.commit()
+        tl = UserTestAccess(
+            user_id=user_id,
+            test_id=i.id,
+            data=datetime.datetime.now(),
+        )
+        session.add(tl)
+        session.commit()
     answer["test_id"] = test_id
+    answer["right_percent"] = right_count / all_count
+    answer["points"] = right_count / all_count * session.query(ChapterTest).filter(ChapterTest.id == test_id).testScore[
+        0].max_score
+    session.close()
     return answer
 
 
@@ -358,12 +409,11 @@ def news():
     return answer
 
 
-# __Chat__
+# ______BOT______
 
 @app.route("/Bot/SendMessage", methods=["POST"])
 @token_required
 def sendMessage():
-    print(1)
     messages = [
         SystemMessage(
             content="Ты финансовый эксперт для детей, которые начинают изучать финасовую граммотность, будь вежлив"
@@ -375,7 +425,7 @@ def sendMessage():
     old_messages = session.query(User).filter(User.id == user_id).first().chatBotHistories
     for i in old_messages:
         if i.isReplay:
-            messages.append(SystemMessage(
+            messages.append(AIMessage(
                 content=i.text
             ))
         else:
@@ -407,7 +457,69 @@ def getChatHistory():
         answer.append({})
         answer[-1]['message'] = i.text
         answer[-1]['date'] = i.date.strftime("%Y-%m-%d %H:%M:%S")
-        answer[-1]['isReplay'] = i.isReplay
+        answer[-1]['isReply'] = i.isReplay
+    session.close()
+    return answer
+
+
+# _____USER______
+@app.route("/user/changePassword", methods=["POST"])
+@token_required
+def changePassword():
+    session = db_session.create_session()
+    user_id = json.loads(request.data)['user_id']
+    oldPassword = json.loads(request.data)['oldPassword']
+    newPassword = json.loads(request.data)['newPassword']
+    user = session.query(User).filter(User.id == user_id).first()
+    if user.check_password(oldPassword):
+        user.set_password(newPassword)
+        session.commit()
+        return {"check": True}
+    else:
+        return {"check": False}
+
+
+@app.route("/user/loadPicture", methods=["POST"])
+@token_required
+def loadPicture():
+    session = db_session.create_session()
+    user_id = json.loads(request.data)['user_id']
+    url = json.loads(request.data)['url']
+    user = session.query(User).filter(User.id == user_id).first()
+    user.img_src = url
+    session.commit()
+    session.close()
+    return {"check": True}
+
+
+@app.route("/user/getProfileData", methods=["POST"])
+@token_required
+def getProfileData():
+    session = db_session.create_session()
+    user_id = json.loads(request.data)['user_id']
+    user = session.query(User).filter(User.id == user_id).first()
+    d = {}
+    for i in user.userTestAttempts:
+        if i.test_id not in d:
+            d[i.test_id] = 0
+        d[i.test_id] = max(i.right_percent * i.test.testScore[0].max_score, d[i.test_id])
+    answer = 0
+    for j in d.keys():
+        answer += d[j]
+    return {"userId": user.id, "nickname": user.nickname, "surname": user.surname, "name": user.name,
+            "img_src": user.img_src, "score": answer}
+
+
+@app.route("/getLeaderBoard", methods=["POST"])
+@token_required
+def getLeaderBoard():
+    session = db_session.create_session()
+    N = json.loads(request.data)['N']
+    answer = []
+    a = sorted(session.query(LeaderBoard).all(), key=lambda x: -x.score)
+    for i in a[:min(N, len(a) - 1)]:
+        answer.append({"user_id": i.user_id, "nickname": i.nickname, "firstname": i.firstname, "surname": i.surname,
+                       "img_src": i.img_src, "score": i.score, "tests_passed": i.tests_passed})
     session.close()
     return answer
 
