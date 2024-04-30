@@ -16,11 +16,12 @@ from db.Chat.chatBotHistory import ChatBotHistory
 from db.Tests.questionAnswer import QuestionAnswer
 from db.Tests.chapterTest import ChapterTest
 from db.Tests.testQuestion import TestQuestion
-from openai import OpenAI
+from langchain.schema import HumanMessage, SystemMessage
+from langchain.chat_models.gigachat import GigaChat
 
-client = OpenAI(
-    api_key='',
-)
+chat = GigaChat(
+    credentials='',
+    verify_ssl_certs=False)
 db_session.global_init("db/users.db")
 
 # ________login________
@@ -303,6 +304,25 @@ def getNextQuestion():
         return answer
 
 
+@app.route("/test/sendAnswers", methods=["POST"])
+@token_required
+def sendAnswers():
+    answer = {}
+    session = db_session.create_session()
+    test_id = json.loads(request.data)['test_id']
+    answers = json.loads(request.data)['submitted_answers']
+    for i in answers:
+        question = session.query(TestQuestion).filter(TestQuestion.id == i["question_id"]).first()
+        if question.multiple_choice:
+            print(i[""])
+            print(question.questionAnswers)
+        else:
+            print(question.questionAnswers)
+    answer["test_id"] = test_id
+    return answer
+
+
+# __token___
 @app.route("/token", methods=["POST"])
 def token():
     session = db_session.create_session()
@@ -344,20 +364,29 @@ def news():
 @token_required
 def sendMessage():
     print(1)
-    messages = [{"role": "system",
-                 "content": "Ты финансовый эксперт для детей, которые начинают изучать финасовую граммотность, будь вежлив"}]
+    messages = [
+        SystemMessage(
+            content="Ты финансовый эксперт для детей, которые начинают изучать финасовую граммотность, будь вежлив"
+        )
+    ]
     user_id = json.loads(request.data)['user_id']
     text = json.loads(request.data)['text']
     session = db_session.create_session()
     old_messages = session.query(User).filter(User.id == user_id).first().chatBotHistories
     for i in old_messages:
-        messages.append({"role": "system" if i.isReplay else "user", "content": i.text})
-    messages.append({"role": "user", "content": "User : " + text})
-    chat = client.chat.completions.create(
-        messages=messages,
-        model="gpt-3.5-turbo",
-    )
-    reply = chat.choices[0].message.content
+        if i.isReplay:
+            messages.append(SystemMessage(
+                content=i.text
+            ))
+        else:
+            messages.append(HumanMessage(
+                content=i.text
+            ))
+    messages.append(HumanMessage(
+        content="User : " + text
+    ))
+    res = chat(messages)
+    reply = res.content
     ch = ChatBotHistory(user_id=user_id, text=text, date=datetime.datetime.now(), isReplay=False)
     session.add(ch)
     ch = ChatBotHistory(user_id=user_id, text=reply, date=datetime.datetime.now(), isReplay=True)
