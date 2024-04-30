@@ -12,6 +12,7 @@ import datetime
 from flask_cors import CORS
 import json
 from db.news import News
+from db.Chat.chatBotHistory import ChatBotHistory
 from db.Tests.questionAnswer import QuestionAnswer
 from db.Tests.chapterTest import ChapterTest
 from db.Tests.testQuestion import TestQuestion
@@ -340,15 +341,25 @@ def news():
 @app.route("/Bot/SendMessage", methods=["POST"])
 @token_required
 def sendMessage():
+    messages = [{"role": "system",
+                 "content": "Ты финансовый эксперт для детей, которые начинают изучать финасовую граммотность, будь вежлив"}]
+    user_id = json.loads(request.data)['user_id']
+    text = json.loads(request.data)['text']
     session = db_session.create_session()
-    answer = []
-    for i in session.query(News).all():
-        answer.append({})
-        answer[-1]['title'] = i.title
-        answer[-1]['preview_src'] = i.preview_src
-        answer[-1]['text'] = i.text
-        answer[-1]['date'] = i.date
-    session.close()
+    old_messages = session.query(User).filter(User.id == user_id).first().chatBotHistories
+    for i in old_messages:
+        messages.append({"role": "system" if i.isReplay else "user", "content": i.text})
+    chat = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo", messages={"role": "user", "content": "User : " + text}
+    )
+    reply = chat.choices[0].message.content
+    ch = ChatBotHistory(user_id=user_id, text=text, date=datetime.datetime.now(), isReplay=False)
+    session.add(ch)
+    ch = ChatBotHistory(user_id=user_id, text=reply, date=datetime.datetime.now(), isReplay=True)
+    session.add(ch)
+    session.commit()
+    answer = {"message": reply, "date": ch.date}
+
     return answer
 
 
@@ -360,10 +371,9 @@ def getChatHistory():
     answer = []
     for i in session.query(User).filter(User.id == user_id).first().chatBotHistories:
         answer.append({})
-        answer[-1]['title'] = i.title
-        answer[-1]['preview_src'] = i.preview_src
-        answer[-1]['text'] = i.text
-        answer[-1]['date'] = i.date
+        answer[-1]['message'] = i.text
+        answer[-1]['date'] = i.date.strftime("%Y-%m-%d %H:%M:%S")
+        answer[-1]['isReplay'] = i.isReplay
     session.close()
     return answer
 
