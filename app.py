@@ -220,9 +220,9 @@ def getQuestionsList():
     answer = []
     for i in session.query(ChapterTest).filter(ChapterTest.id == test_id).first().testQuestions:
         answer.append({})
-        answer[-1]["quesetion_id"] = i.id
-        answer[-1]["quesetion_seq"] = i.sequence
-        answer[-1]["quesetion_text"] = i.text
+        answer[-1]["question_id"] = i.id
+        answer[-1]["question_seq"] = i.sequence
+        answer[-1]["question_text"] = i.text
     return answer
 
 
