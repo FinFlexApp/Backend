@@ -306,12 +306,15 @@ def token():
         token = request.headers["Authorization"]
     if not token:
         return {"check": False}
-    data = jwt.decode(token, app.config['SECRET_KEY'], algorithms=["HS256"])
-    current_user = session.query(User).get(data['user_id'])
-    session.commit()
-    if current_user is None:
+    try:
+        data = jwt.decode(token, app.config['SECRET_KEY'], algorithms=["HS256"])
+        current_user = session.query(User).get(data['user_id'])
+        session.commit()
+        if current_user is None:
+            return {"check": False}
+        return {"check": True}
+    except Exception as e:
         return {"check": False}
-    return {"check": True}
 
 
 # __News__
