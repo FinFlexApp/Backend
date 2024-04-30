@@ -5,6 +5,7 @@ from validate import *
 from db.user import User
 from db.Tests.chapter import Chapter
 from db.Requires.userTestAccess import UserTestAccess
+from db.Requires.userChapterAccess import UserChapterAccess
 from db.Score.userTestAttempt import UserTestAttempt
 from db import db_session
 import datetime
@@ -22,13 +23,11 @@ app.config['CORS_HEADERS'] = 'Content-Type'
 
 
 @app.route("/")
-@cross_origin()
 def hello():
     return "Hello World!"
 
 
 @app.route("/users/register", methods=["POST"])
-@cross_origin()
 def add_user():
     session = db_session.create_session()
     try:
@@ -72,7 +71,6 @@ def add_user():
 
 
 @app.route("/users/login", methods=["POST"])
-@cross_origin()
 def login():
     try:
         datauser = json.loads(request.data)
@@ -121,7 +119,6 @@ def login():
 
 @app.route("/users/", methods=["GET"])
 @token_required
-@cross_origin()
 def get_current_user(current_user):
     return jsonify({
         "message": "successfully retrieved user profile",
@@ -130,7 +127,6 @@ def get_current_user(current_user):
 
 
 @app.errorhandler(403)
-@cross_origin()
 def forbidden(e):
     return jsonify({
         "message": "Forbidden",
@@ -140,7 +136,6 @@ def forbidden(e):
 
 
 @app.errorhandler(404)
-@cross_origin()
 def forbidden(e):
     return jsonify({
         "message": "Endpoint Not Found",
@@ -152,16 +147,16 @@ def forbidden(e):
 # ________Test________
 @app.route("/test/getchapters", methods=["POST"])
 @token_required
-@cross_origin()
 def getchapters():
-    print(json.loads(request.data))
     user_id = json.loads(request.data)['user_id']
-    print(user_id)
     session = db_session.create_session()
     chapters = session.query(Chapter).filter().all()
     answer = []
     for i in chapters:
         answer.append({"chapter_id": i.id, 'title': i.name})
+        answer[-1]['is_unlocked'] = True if session.query(UserChapterAccess).filter(
+            UserChapterAccess.user_id == user_id,
+            UserChapterAccess.chapter_id == i.id).first() else False
         passed_tests = 0
         tests_count = 0
         chapter_score = 0
@@ -186,7 +181,6 @@ def getchapters():
 
 @app.route("/test/getChapterTests", methods=["POST"])
 @token_required
-@cross_origin()
 def GetChapterTests():
     user_id = json.loads(request.data)['user_id']
     chapter_id = json.loads(request.data)['chapter_id']
@@ -195,19 +189,23 @@ def GetChapterTests():
     for i in session.query(Chapter).filter(Chapter.id == chapter_id).first().chapterTests:
         answer.append({})
         answer[-1]["test_id"] = i.id
-        answer[-1]["title"] = i.title
+        answer[-1]["title"] = i.name
 
         answer[-1]["is_unlocked"] = True if session.query(UserTestAccess).filter(UserTestAccess.user_id == user_id,
-                                                                                 UserTestAccess.test_id == i.id) else False
+                                                                                 UserTestAccess.test_id == i.id).first() else False
         answer[-1]["questions_count"] = len(i.testQuestions)
-        answer[-1]["is_passed"] = True if session.query(UserTestAttempt).filter(UserTestAttempt.user_id == user_id,
-                                                                                 UserTestAttempt.test_id == i.id) else False
-        answer[-1]["user_score"] = len(i.testQuestions)
-        answer[-1]["max_score"] = i.testScore[0].max_score
-        answer[-1]["img_src"] = i.testAttachments[0].source_url
-        print(i)
         a = session.query(UserTestAttempt).filter(UserTestAttempt.user_id == user_id,
                                                   UserTestAttempt.test_id == i.id).all()
+        answer[-1]["is_passed"] = True if a else False
+        max_score = 0
+        for k in a:
+            max_score = max(max_score, i.testScore[0].max_score * k.right_percent)
+        answer[-1]["user_score"] = max_score
+        answer[-1]["max_score"] = i.testScore[0].max_score
+        answer[-1]["img_src"] = i.testAttachments[0].source_url
+
+    session.close()
+    return answer
 
 
 if __name__ == "__main__":

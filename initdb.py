@@ -7,7 +7,10 @@ from db.user import User
 from db.Tests.chapterTest import ChapterTest
 from db.Score.userTestAttempt import UserTestAttempt
 from db.Score.testScores import TestScore
-
+from db.Tests.testAttachment import TestAttachment
+from db.Tests.mediaTypes import MediaType
+from db.Requires.userChapterAccess import UserChapterAccess
+from db.Requires.userTestAccess import UserTestAccess
 db_session.global_init("db/users.db")
 chapters_data = [
     {'sequence': 1, 'name': 'Chapter 1', 'description': 'Description for Chapter 1',
@@ -102,11 +105,35 @@ for _ in range(20):  # Генерируем 20 попыток тестирова
 
     attempt = UserTestAttempt(user_id=user_id, test_id=test_id, date=date, right_percent=right_percent)
     session.add(attempt)
-# Сохранение изменений
-session.commit()
 
-# Закрытие сессии
-session.close()
+media_type = MediaType(name="kaka", description="dada")
+session.add(media_type)
+
+for i in range(1, 16):
+    attachment = TestAttachment(test_id=i, media_type=1, source_url=f'http://example.com/media_{i}.mp4')
+    session.add(attachment)
+
+# user_id пользователя
+user_id = 11
+
+# chapter_id глав, к которым пользователь имеет доступ
+chapter_ids = [1, 2, 3]
+
+# Создаем записи доступа пользователя к главам
+for chapter_id in chapter_ids:
+    user_chapter_access = UserChapterAccess(user_id=user_id, chapter_id=chapter_id, date=datetime.now())
+    session.add(user_chapter_access)
+
+user_id = 11
+
+# test_id тестов, к которым пользователь имеет доступ
+test_ids = [1, 2, 3, 4, 5]
+
+# Создаем записи доступа пользователя к тестам
+for test_id in test_ids:
+    user_test_access = UserTestAccess(user_id=user_id, test_id=test_id, date=datetime.now())
+    session.add(user_test_access)
+
 # Сохранение изменений
 session.commit()
 
