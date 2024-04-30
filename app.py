@@ -15,7 +15,9 @@ from db.news import News
 from db.Tests.questionAnswer import QuestionAnswer
 from db.Tests.chapterTest import ChapterTest
 from db.Tests.testQuestion import TestQuestion
+import openai
 
+openai.my_api_key = ''
 db_session.global_init("db/users.db")
 
 # ________login________
@@ -324,6 +326,39 @@ def news():
     session = db_session.create_session()
     answer = []
     for i in session.query(News).all():
+        answer.append({})
+        answer[-1]['title'] = i.title
+        answer[-1]['preview_src'] = i.preview_src
+        answer[-1]['text'] = i.text
+        answer[-1]['date'] = i.date.strftime("%Y-%m-%d %H:%M:%S")
+    session.close()
+    return answer
+
+
+# __Chat__
+
+@app.route("/Bot/SendMessage", methods=["POST"])
+@token_required
+def sendMessage():
+    session = db_session.create_session()
+    answer = []
+    for i in session.query(News).all():
+        answer.append({})
+        answer[-1]['title'] = i.title
+        answer[-1]['preview_src'] = i.preview_src
+        answer[-1]['text'] = i.text
+        answer[-1]['date'] = i.date
+    session.close()
+    return answer
+
+
+@app.route("/Bot/getChatHistory", methods=["POST"])
+@token_required
+def getChatHistory():
+    session = db_session.create_session()
+    user_id = json.loads(request.data)['user_id']
+    answer = []
+    for i in session.query(User).filter(User.id == user_id).first().chatBotHistories:
         answer.append({})
         answer[-1]['title'] = i.title
         answer[-1]['preview_src'] = i.preview_src
