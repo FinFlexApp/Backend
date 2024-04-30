@@ -12,9 +12,9 @@ class ChapterTest(SqlAlchemyBase):
     sequence = sqlalchemy.Column(sqlalchemy.Integer)
     name = sqlalchemy.Column(sqlalchemy.String)
     description = sqlalchemy.Column(sqlalchemy.Text)
+    img_src = sqlalchemy.Column(sqlalchemy.String)
     chapter = orm.relationship('Chapter')
 
     testQuestions = orm.relationship("TestQuestion", backref='chapterTests')
     userTestAttempts = orm.relationship("UserTestAttempt", backref='chapterTests')
     testScore = orm.relationship("TestScore", backref='chapterTests')
-    testAttachments = orm.relationship("TestAttachment", backref='chapterTests')

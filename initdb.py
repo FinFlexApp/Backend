@@ -7,13 +7,10 @@ from db.user import User
 from db.Tests.chapterTest import ChapterTest
 from db.Score.userTestAttempt import UserTestAttempt
 from db.Score.testScores import TestScore
-from db.Tests.testAttachment import TestAttachment
-from db.Tests.mediaTypes import MediaType
 from db.Requires.userChapterAccess import UserChapterAccess
 from db.Requires.userTestAccess import UserTestAccess
 from db.Tests.questionAnswer import QuestionAnswer
 from db.Tests.testQuestion import TestQuestion
-from db.Tests.questionAttachment import QuestionAttachment
 from db.news import News
 
 db_session.global_init("db/users.db")
@@ -89,7 +86,8 @@ for i in range(1, 6):  # Считаем, что есть 5 глав в табл�
             'chapter_id': i,
             'sequence': j,
             'name': f'Test {i}.{j}',
-            'description': f'Test description for Chapter {i}, Test {j}'
+            'description': f'Test description for Chapter {i}, Test {j}',
+            'img_src': 'https://thumbs.dfs.ivi.ru/storage6/contents/2/f/3d8cf3a06154802d89099ff0812641.jpg'
         }
         test = ChapterTest(**test_data)
         session.add(test)
@@ -110,13 +108,6 @@ for _ in range(20):  # Генерируем 20 попыток тестирова
 
     attempt = UserTestAttempt(user_id=user_id, test_id=test_id, date=date, right_percent=right_percent)
     session.add(attempt)
-
-media_type = MediaType(name="kaka", description="dada")
-session.add(media_type)
-
-for i in range(1, 16):
-    attachment = TestAttachment(test_id=i, media_type=1, source_url=f'http://example.com/media_{i}.mp4')
-    session.add(attachment)
 
 # user_id пользователя
 user_id = 11
@@ -144,9 +135,9 @@ test_id = 1
 
 # Создаем вопросы для теста
 questions_data = [
-    {"sequence": 1, "text": "Question 1", "multiple_choice": True},
-    {"sequence": 2, "text": "Question 2", "multiple_choice": False},
-    {"sequence": 3, "text": "Question 3", "multiple_choice": True}
+    {"sequence": 1, "text": "Question 1", "multiple_choice": True, 'img_src': 'https://thumbs.dfs.ivi.ru/storage6/contents/2/f/3d8cf3a06154802d89099ff0812641.jpg'},
+    {"sequence": 2, "text": "Question 2", "multiple_choice": False, 'img_src': 'https://thumbs.dfs.ivi.ru/storage6/contents/2/f/3d8cf3a06154802d89099ff0812641.jpg'},
+    {"sequence": 3, "text": "Question 3", "multiple_choice": True, 'img_src': 'https://thumbs.dfs.ivi.ru/storage6/contents/2/f/3d8cf3a06154802d89099ff0812641.jpg'}
 ]
 
 for question_data in questions_data:
@@ -157,18 +148,13 @@ for question_data in questions_data:
     # Создаем ответы для вопроса
     if question_data["multiple_choice"]:
         answers_data = [
-            {"text": "Answer 1", "isRight": True},
-            {"text": "Answer 2", "isRight": False},
-            {"text": "Answer 3", "isRight": True}
+            {"text": "Answer 1", "isRight": True, 'img_src': 'https://thumbs.dfs.ivi.ru/storage6/contents/2/f/3d8cf3a06154802d89099ff0812641.jpg'},
+            {"text": "Answer 2", "isRight": False, 'img_src': 'https://thumbs.dfs.ivi.ru/storage6/contents/2/f/3d8cf3a06154802d89099ff0812641.jpg'},
+            {"text": "Answer 3", "isRight": True, 'img_src': 'https://thumbs.dfs.ivi.ru/storage6/contents/2/f/3d8cf3a06154802d89099ff0812641.jpg'}
         ]
         for answer_data in answers_data:
             answer = QuestionAnswer(question_id=question.id, **answer_data)
             session.add(answer)
-
-    # Создаем вложения для вопроса
-    attachment_data = {"media_type": 1, "source_url": "http://example.com/image.jpg"}
-    attachment = QuestionAttachment(question_id=question.id, **attachment_data)
-    session.add(attachment)
 
 news_data = [
     {"title": "Новость 1", "preview_src": "http://example.com/image1.jpg", "text": "Текст новости 1",

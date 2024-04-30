@@ -11,6 +11,5 @@ class QuestionAnswer(SqlAlchemyBase):
     question_id = sqlalchemy.Column(sqlalchemy.Integer, sqlalchemy.ForeignKey("testQuestions.id"))
     text = sqlalchemy.Column(sqlalchemy.Text)
     isRight = sqlalchemy.Column(sqlalchemy.Boolean)
+    img_src = sqlalchemy.Column(sqlalchemy.String)
     testQuestion = orm.relationship('TestQuestion')
-
-    answerAttachments = orm.relationship("AnswerAttachment", backref='testQuestions')

@@ -174,6 +174,7 @@ def getchapters():
             for k in a:
                 max_score = max(max_score, j.testScore[0].max_score * k.right_percent)
             chapter_score += max_score
+        answer[-1]['sequence'] = i.sequence
         answer[-1]['passed_tests'] = passed_tests
         answer[-1]['tests_count'] = tests_count
         answer[-1]['chapter_score'] = chapter_score
@@ -206,7 +207,7 @@ def GetChapterTests():
             max_score = max(max_score, i.testScore[0].max_score * k.right_percent)
         answer[-1]["user_score"] = max_score
         answer[-1]["max_score"] = i.testScore[0].max_score
-        answer[-1]["img_src"] = i.testAttachments[0].source_url
+        answer[-1]["img_src"] = i.img_src
 
     session.close()
     return answer
@@ -232,7 +233,18 @@ def getQuestion():
     session = db_session.create_session()
     question_id = json.loads(request.data)['question_id']
     question = session.query(TestQuestion).filter(TestQuestion.id == question_id).first()
-    return question
+    answer = {}
+    answer['id'] = question.id
+    answer['question_seq'] = question.sequence
+    answer['question_text'] = question.text
+    answer['question_attachment'] = question.img_src
+    answer['multiple_choice'] = question.multiple_choice
+    answer['answers'] = []
+    for i in question.questionAnswers:
+        answer['answers'].append(
+            {"answers_id": i.id, "answer_text": i.text, "answer_attachment": i.img_src, "isRight": i.isRight})
+
+    return answer
 
 
 @app.route("/test/getFirstQuestion", methods=["POST"])
@@ -240,12 +252,23 @@ def getQuestion():
 def getFirstQuestion():
     session = db_session.create_session()
     test_id = json.loads(request.data)['test_id']
-    answer = []
+    quesions = []
     for i in session.query(ChapterTest).filter(ChapterTest.id == test_id).first().testQuestions:
-        answer.append(i)
-    answer = sorted(answer, key=lambda x: x.sequence)
-    print(answer[0])
-    return answer[0]
+        quesions.append(i)
+    quesions = sorted(quesions, key=lambda x: x.sequence)
+    question = quesions[0]
+    answer = {}
+    answer['id'] = question.id
+    answer['question_seq'] = question.sequence
+    answer['question_text'] = question.text
+    answer['question_attachment'] = question.img_src
+    answer['multiple_choice'] = question.multiple_choice
+    answer['answers'] = []
+    for i in question.questionAnswers:
+        answer['answers'].append(
+            {"answers_id": i.id, "answer_text": i.text, "answer_attachment": i.img_src, "isRight": i.isRight})
+
+    return answer
 
 
 @app.route("/test/getNextQuestion", methods=["POST"])
@@ -254,14 +277,41 @@ def getNextQuestion():
     session = db_session.create_session()
     question_id = json.loads(request.data)['question_id']
     question = session.query(TestQuestion).filter(TestQuestion.id == question_id).first()
-    answer = []
-    for i in session.query(ChapterTest).filter(ChapterTest.id == question.chapterTest[0].id).first().testQuestions:
-        answer.append(i)
-    answer = sorted(answer, key=lambda x: x.sequence)
-    if len(answer) == question.sequence:
+    questions = []
+    for i in question.chapterTest.testQuestions:
+        questions.append(i)
+    questions = sorted(questions, key=lambda x: x.sequence)
+    if len(questions) == question.sequence:
         return None
     else:
-        return answer[question.sequence]
+        question = questions[question.sequence]
+        answer = {}
+        answer['id'] = question.id
+        answer['question_seq'] = question.sequence
+        answer['question_text'] = question.text
+        answer['question_attachment'] = question.img_src
+        answer['multiple_choice'] = question.multiple_choice
+        answer['answers'] = []
+        for i in question.questionAnswers:
+            answer['answers'].append(
+                {"answers_id": i.id, "answer_text": i.text, "answer_attachment": i.img_src, "isRight": i.isRight})
+        return answer
+
+
+@app.route("/token", methods=["POST"])
+def token():
+    session = db_session.create_session()
+    token = None
+    if "Authorization" in request.headers:
+        token = request.headers["Authorization"]
+    if not token:
+        return False
+    data = jwt.decode(token, app.config['SECRET_KEY'], algorithms=["HS256"])
+    current_user = session.query(User).get(data['user_id'])
+    session.commit()
+    if current_user is None:
+        return False
+    return True
 
 
 # __News__
