@@ -38,3 +38,6 @@ from json import dumps
 #
 # print(requests.post("http://127.0.0.1:5000/test/getNextQuestion", data=dumps({"question_id": 1}), headers={
 #     "Authorization": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxMX0.00KV-iWi85eL-CZC4w5Ma2r0_dMw8ohjbjDkStIIXfQ"}).json())
+
+print(requests.post("http://127.0.0.1:5000/token", data=dumps({"user_id": 1}), headers={
+    "Authorization": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxMX0.00KV-iWi85eL-CZC4w5Ma2r0_dMw8ohjbjDkStIIXfQ"}).json())
