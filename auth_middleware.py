@@ -22,7 +22,6 @@ def token_required(f):
                 "error": "Unauthorized"
             }, 401
         try:
-            print(token, current_app.config["SECRET_KEY"])
             data = jwt.decode(token, current_app.config["SECRET_KEY"], algorithms=["HS256"])
             current_user = session.query(User).get(data['user_id'])
             session.commit()

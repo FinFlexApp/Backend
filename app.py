@@ -4,10 +4,12 @@ from auth_middleware import token_required
 from validate import *
 from db.user import User
 from db.Tests.chapter import Chapter
+from db.Requires.userTestAccess import UserTestAccess
 from db.Score.userTestAttempt import UserTestAttempt
 from db import db_session
 import datetime
 from flask_cors import CORS, cross_origin
+import json
 
 db_session.global_init("db/users.db")
 
@@ -17,6 +19,7 @@ cors = CORS(app)
 SECRET_KEY = os.environ.get('SECRET_KEY') or 'this is a secret'
 app.config['SECRET_KEY'] = SECRET_KEY
 app.config['CORS_HEADERS'] = 'Content-Type'
+
 
 @app.route("/")
 @cross_origin()
@@ -29,7 +32,7 @@ def hello():
 def add_user():
     session = db_session.create_session()
     try:
-        datauser = request.json
+        datauser = json.loads(request.data)
         if not datauser:
             return {
                 "message": "Please provide user details",
@@ -72,7 +75,7 @@ def add_user():
 @cross_origin()
 def login():
     try:
-        datauser = request.json
+        datauser = json.loads(request.data)
         if not datauser:
             return {
                 "message": "Please provide user details",
@@ -151,10 +154,11 @@ def forbidden(e):
 @token_required
 @cross_origin()
 def getchapters():
-    user_id = request.json['user_id']
+    print(json.loads(request.data))
+    user_id = json.loads(request.data)['user_id']
+    print(user_id)
     session = db_session.create_session()
     chapters = session.query(Chapter).filter().all()
-    session.commit()
     answer = []
     for i in chapters:
         answer.append({"chapter_id": i.id, 'title': i.name})
@@ -176,7 +180,34 @@ def getchapters():
         answer[-1]['chapter_score'] = chapter_score
         answer[-1]['description'] = i.description
         answer[-1]['img_src'] = i.source_url
+    session.close()
     return answer
+
+
+@app.route("/test/getChapterTests", methods=["POST"])
+@token_required
+@cross_origin()
+def GetChapterTests():
+    user_id = json.loads(request.data)['user_id']
+    chapter_id = json.loads(request.data)['chapter_id']
+    session = db_session.create_session()
+    answer = []
+    for i in session.query(Chapter).filter(Chapter.id == chapter_id).first().chapterTests:
+        answer.append({})
+        answer[-1]["test_id"] = i.id
+        answer[-1]["title"] = i.title
+
+        answer[-1]["is_unlocked"] = True if session.query(UserTestAccess).filter(UserTestAccess.user_id == user_id,
+                                                                                 UserTestAccess.test_id == i.id) else False
+        answer[-1]["questions_count"] = len(i.testQuestions)
+        answer[-1]["is_passed"] = True if session.query(UserTestAttempt).filter(UserTestAttempt.user_id == user_id,
+                                                                                 UserTestAttempt.test_id == i.id) else False
+        answer[-1]["user_score"] = len(i.testQuestions)
+        answer[-1]["max_score"] = i.testScore[0].max_score
+        answer[-1]["img_src"] = i.testAttachments[0].source_url
+        print(i)
+        a = session.query(UserTestAttempt).filter(UserTestAttempt.user_id == user_id,
+                                                  UserTestAttempt.test_id == i.id).all()
 
 
 if __name__ == "__main__":
