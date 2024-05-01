@@ -444,7 +444,7 @@ def news():
 
 # ______BOT______
 
-@app.route("/Bot/SendMessage", methods=["POST"])
+@app.route("/Bot/sendMessage", methods=["POST"])
 @token_required
 def sendMessage():
     messages = [
@@ -475,12 +475,12 @@ def sendMessage():
     ch = ChatBotHistory(user_id=user_id, text=reply, date=datetime.datetime.now(), isReplay=True)
     session.add(ch)
     session.commit()
-    answer = {"message": reply, "date": ch.date}
+    answer = {"message": reply, "date": ch.date.date.strftime("%Y-%m-%d %H:%M:%S")}
 
     return answer
 
 
-@app.route("/Bot/getChatHistory", methods=["POST"])
+@app.route("/bot/getChatHistory", methods=["POST"])
 @token_required
 def getChatHistory():
     session = db_session.create_session()
