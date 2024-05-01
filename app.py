@@ -13,7 +13,6 @@ from flask_cors import CORS
 import json
 from db.news import News
 from db.Chat.chatBotHistory import ChatBotHistory
-from db.Tests.questionAnswer import QuestionAnswer
 from db.Tests.chapterTest import ChapterTest
 from db.Requires.ChapterRequires import ChapterRequire
 from db.Requires.TestRequires import TestRequire
@@ -27,7 +26,7 @@ chat = GigaChat(
     verify_ssl_certs=False)
 db_session.global_init("db/users.db")
 
-# ________login________
+# ________login&User&token________
 app = Flask(__name__)
 cors = CORS(app)
 SECRET_KEY = os.environ.get('SECRET_KEY') or 'this is a secret'
@@ -74,17 +73,16 @@ def add_user():
         userChapterAccesses = UserChapterAccess(
             user_id=user.id,
             chapter_id=1,
-            data=datetime.datetime.now()
+            date=datetime.datetime.now()
         )
         session.add(userChapterAccesses)
         session.commit()
         userTestAccesses = UserTestAccess(
             user_id=user.id,
             test_id=1,
-            data=datetime.datetime.now()
+            date=datetime.datetime.now()
         )
         session.add(userTestAccesses)
-        session.commit()
         session.commit()
         return {
             "message": "Successfully created new user",
@@ -108,7 +106,6 @@ def login():
                 "data": None,
                 "error": "Bad request"
             }, 400
-        # validate input
         is_validated = validate_email_and_password(datauser['email'], datauser['password'])
         if is_validated is not True:
             return dict(message='Invalid data', data=None, error=is_validated), 400
@@ -145,31 +142,70 @@ def login():
         }, 500
 
 
-@app.route("/users/", methods=["GET"])
+@app.route("/users/getProfileData", methods=["POST"])
 @token_required
-def get_current_user(current_user):
-    return jsonify({
-        "message": "successfully retrieved user profile",
-        "data": current_user
-    })
+def getProfileData():
+    session = db_session.create_session()
+    user_id = json.loads(request.data)['user_id']
+    user = session.query(User).filter(User.id == user_id).first()
+    d = {}
+    for i in user.userTestAttempts:
+        if i.test_id not in d:
+            d[i.test_id] = 0
+        d[i.test_id] = max(i.right_percent * i.test.testScore[0].max_score, d[i.test_id])
+    answer = 0
+    for j in d.keys():
+        answer += d[j]
+    return {"userId": user.id, "nickname": user.nickname, "surname": user.surname, "name": user.firstname,
+            "img_src": user.img_src, "score": answer}
 
 
-@app.errorhandler(403)
-def forbidden(e):
-    return jsonify({
-        "message": "Forbidden",
-        "error": str(e),
-        "data": None
-    }), 403
+@app.route("/users/changePassword", methods=["POST"])
+@token_required
+def changePassword():
+    session = db_session.create_session()
+    user_id = json.loads(request.data)['user_id']
+    oldPassword = json.loads(request.data)['oldPassword']
+    newPassword = json.loads(request.data)['newPassword']
+    user = session.query(User).filter(User.id == user_id).first()
+    if user.check_password(oldPassword):
+        user.set_password(newPassword)
+        session.commit()
+        return {"check": True}
+    else:
+        return {"check": False}
 
 
-@app.errorhandler(404)
-def forbidden(e):
-    return jsonify({
-        "message": "Endpoint Not Found",
-        "error": str(e),
-        "data": None
-    }), 404
+@app.route("/users/loadPicture", methods=["POST"])
+@token_required
+def loadPicture():
+    session = db_session.create_session()
+    user_id = json.loads(request.data)['user_id']
+    url = json.loads(request.data)['url']
+    user = session.query(User).filter(User.id == user_id).first()
+    user.img_src = url
+    session.commit()
+    session.close()
+    return {"check": True}
+
+
+@app.route("/token", methods=["POST"])
+def token():
+    session = db_session.create_session()
+    token = None
+    if "Authorization" in request.headers:
+        token = request.headers["Authorization"]
+    if not token:
+        return {"check": False}
+    try:
+        data = jwt.decode(token, app.config['SECRET_KEY'], algorithms=["HS256"])
+        current_user = session.query(User).get(data['user_id'])
+        session.commit()
+        if current_user is None:
+            return {"check": False}
+        return {"check": True}
+    except Exception as e:
+        return {"check": False}
 
 
 # ________Test________
@@ -345,52 +381,49 @@ def sendAnswers():
     tl = UserTestAttempt(
         user_id=user_id,
         test_id=test_id,
-        data=datetime.datetime.now(),
+        date=datetime.datetime.now(),
         right_percent=right_count / all_count
     )
-    a = session.query(ChapterTest).filter(ChapterTest.id == test_id).first().chapter.chapterTests
+    session.add(tl)
+    session.commit()
+    a = session.query(ChapterTest).filter(ChapterTest.id == test_id).first()
     count_tests = 0
-    for i in a:
-        if session.query(UserTestAttempt).filter(UserTestAttempt.test_id == i.id, UserTestAttempt.user_id == user_id):
+    for i in a.chapter.chapterTests:
+        if session.query(UserTestAttempt).filter(UserTestAttempt.test_id == i.id, UserTestAttempt.user_id == user_id).first():
             count_tests += 1
-    if count_tests == len(a):
-        pass
+    if count_tests == len(a.chapter.chapterTests):
+        for i in session.query(ChapterRequire).filter(ChapterRequire.required_chapter_id == a.chapter.id).all():
+            if not session.query(UserChapterAccess).filter(UserChapterAccess.user_id == user_id,
+                                                           UserChapterAccess.chapter_id == i.unlockable_chapter_id).first():
+                tl = UserChapterAccess(
+                    user_id=user_id,
+                    chapter_id=i.unlockable_chapter_id,
+                    date=datetime.datetime.now(),
+                )
+                session.add(tl)
+                tl = UserTestAccess(
+                    user_id=user_id,
+                    test_id=sorted(i.unlockable_chapter.chapterTests, key=lambda x: x.sequence)[0].id,
+                    date=datetime.datetime.now(),
+                )
+                session.add(tl)
+                session.commit()
     for i in session.query(TestRequire).filter(TestRequire.required_test_id == test_id).all():
-        session.add(tl)
-        session.commit()
-        tl = UserTestAccess(
-            user_id=user_id,
-            test_id=i.id,
-            data=datetime.datetime.now(),
-        )
-        session.add(tl)
-        session.commit()
+        if not session.query(UserTestAccess).filter(UserTestAccess.user_id == user_id,
+                                                    UserTestAccess.test_id == i.unlockable_test_id).first():
+            tl = UserTestAccess(
+                user_id=user_id,
+                test_id=i.unlockable_test_id,
+                date=datetime.datetime.now(),
+            )
+            session.add(tl)
+            session.commit()
     answer["test_id"] = test_id
     answer["right_percent"] = right_count / all_count
-    answer["points"] = right_count / all_count * session.query(ChapterTest).filter(ChapterTest.id == test_id).testScore[
+    answer["points"] = right_count / all_count * session.query(ChapterTest).filter(ChapterTest.id == test_id).first().testScore[
         0].max_score
     session.close()
     return answer
-
-
-# __token___
-@app.route("/token", methods=["POST"])
-def token():
-    session = db_session.create_session()
-    token = None
-    if "Authorization" in request.headers:
-        token = request.headers["Authorization"]
-    if not token:
-        return {"check": False}
-    try:
-        data = jwt.decode(token, app.config['SECRET_KEY'], algorithms=["HS256"])
-        current_user = session.query(User).get(data['user_id'])
-        session.commit()
-        if current_user is None:
-            return {"check": False}
-        return {"check": True}
-    except Exception as e:
-        return {"check": False}
 
 
 # __News__
@@ -462,54 +495,7 @@ def getChatHistory():
     return answer
 
 
-# _____USER______
-@app.route("/user/changePassword", methods=["POST"])
-@token_required
-def changePassword():
-    session = db_session.create_session()
-    user_id = json.loads(request.data)['user_id']
-    oldPassword = json.loads(request.data)['oldPassword']
-    newPassword = json.loads(request.data)['newPassword']
-    user = session.query(User).filter(User.id == user_id).first()
-    if user.check_password(oldPassword):
-        user.set_password(newPassword)
-        session.commit()
-        return {"check": True}
-    else:
-        return {"check": False}
-
-
-@app.route("/user/loadPicture", methods=["POST"])
-@token_required
-def loadPicture():
-    session = db_session.create_session()
-    user_id = json.loads(request.data)['user_id']
-    url = json.loads(request.data)['url']
-    user = session.query(User).filter(User.id == user_id).first()
-    user.img_src = url
-    session.commit()
-    session.close()
-    return {"check": True}
-
-
-@app.route("/user/getProfileData", methods=["POST"])
-@token_required
-def getProfileData():
-    session = db_session.create_session()
-    user_id = json.loads(request.data)['user_id']
-    user = session.query(User).filter(User.id == user_id).first()
-    d = {}
-    for i in user.userTestAttempts:
-        if i.test_id not in d:
-            d[i.test_id] = 0
-        d[i.test_id] = max(i.right_percent * i.test.testScore[0].max_score, d[i.test_id])
-    answer = 0
-    for j in d.keys():
-        answer += d[j]
-    return {"userId": user.id, "nickname": user.nickname, "surname": user.surname, "name": user.name,
-            "img_src": user.img_src, "score": answer}
-
-
+# ______LB______
 @app.route("/getLeaderBoard", methods=["POST"])
 @token_required
 def getLeaderBoard():
@@ -517,11 +503,31 @@ def getLeaderBoard():
     N = json.loads(request.data)['N']
     answer = []
     a = sorted(session.query(LeaderBoard).all(), key=lambda x: -x.score)
-    for i in a[:min(N, len(a) - 1)]:
-        answer.append({"user_id": i.user_id, "nickname": i.nickname, "firstname": i.firstname, "surname": i.surname,
-                       "img_src": i.img_src, "score": i.score, "tests_passed": i.tests_passed})
+    for i in a[:min(N, len(a))]:
+        user = session.query()
+        answer.append({"user_id": i.user.id, "nickname": i.user.nickname, "firstname": i.user.firstname, "surname": i.user.surname,
+                       "img_src": i.user.img_src, "score": i.score, "tests_passed": i.tests_passed})
     session.close()
     return answer
+
+
+# ______System________
+@app.errorhandler(403)
+def forbidden(e):
+    return jsonify({
+        "message": "Forbidden",
+        "error": str(e),
+        "data": None
+    }), 403
+
+
+@app.errorhandler(404)
+def forbidden(e):
+    return jsonify({
+        "message": "Endpoint Not Found",
+        "error": str(e),
+        "data": None
+    }), 404
 
 
 if __name__ == "__main__":
