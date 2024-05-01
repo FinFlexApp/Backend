@@ -18,15 +18,15 @@ from db.Requires.TestRequires import TestRequire
 db_session.global_init("db/users.db")
 chapters_data = [
     {'sequence': 1, 'name': 'Chapter 1', 'description': 'Description for Chapter 1',
-     'source_url': 'https://example.com/chapter1'},
+     'source_url': 'https://thumbs.dfs.ivi.ru/storage6/contents/2/f/3d8cf3a06154802d89099ff0812641.jpg'},
     {'sequence': 2, 'name': 'Chapter 2', 'description': 'Description for Chapter 2',
-     'source_url': 'https://example.com/chapter2'},
+     'source_url': 'https://thumbs.dfs.ivi.ru/storage6/contents/2/f/3d8cf3a06154802d89099ff0812641.jpg'},
     {'sequence': 3, 'name': 'Chapter 3', 'description': 'Description for Chapter 3',
-     'source_url': 'https://example.com/chapter3'},
+     'source_url': 'https://thumbs.dfs.ivi.ru/storage6/contents/2/f/3d8cf3a06154802d89099ff0812641.jpg'},
     {'sequence': 4, 'name': 'Chapter 4', 'description': 'Description for Chapter 4',
-     'source_url': 'https://example.com/chapter4'},
+     'source_url': 'https://thumbs.dfs.ivi.ru/storage6/contents/2/f/3d8cf3a06154802d89099ff0812641.jpg'},
     {'sequence': 5, 'name': 'Chapter 5', 'description': 'Description for Chapter 5',
-     'source_url': 'https://example.com/chapter5'}
+     'source_url': 'https://thumbs.dfs.ivi.ru/storage6/contents/2/f/3d8cf3a06154802d89099ff0812641.jpg'}
 ]
 session = db_session.create_session()
 
@@ -54,7 +54,7 @@ def generate_password():
 
 
 def generate_img_src():
-    return 'https://example.com/' + generate_random_string(10)
+    return 'https://thumbs.dfs.ivi.ru/storage6/contents/2/f/3d8cf3a06154802d89099ff0812641.jpg'
 
 
 def generate_reg_date():
@@ -174,11 +174,11 @@ for i in range(1, 16):
                 answer = QuestionAnswer(question_id=question.id, **answer_data)
                 session.add(answer)
 news_data = [
-    {"title": "Новость 1", "preview_src": "http://example.com/image1.jpg", "text": "Текст новости 1",
+    {"title": "Новость 1", "preview_src": "https://thumbs.dfs.ivi.ru/storage6/contents/2/f/3d8cf3a06154802d89099ff0812641.jpg", "text": "Текст новости 1",
      "date": datetime.now()},
-    {"title": "Новость 2", "preview_src": "http://example.com/image2.jpg", "text": "Текст новости 2",
+    {"title": "Новость 2", "preview_src": "https://thumbs.dfs.ivi.ru/storage6/contents/2/f/3d8cf3a06154802d89099ff0812641.jpg", "text": "Текст новости 2",
      "date": datetime.now()},
-    {"title": "Новость 3", "preview_src": "http://example.com/image3.jpg", "text": "Текст новости 3",
+    {"title": "Новость 3", "preview_src": "https://thumbs.dfs.ivi.ru/storage6/contents/2/f/3d8cf3a06154802d89099ff0812641.jpg", "text": "Текст новости 3",
      "date": datetime.now()},
 ]
 
