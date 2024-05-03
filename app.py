@@ -366,10 +366,9 @@ def sendAnswers():
     user_id = json.loads(request.data)['user_id']
     test_id = json.loads(request.data)['test_id']
     answers = json.loads(request.data)['submitted_answers']
-    all_count = 0
+    all_count = len(session.query(ChapterTest).filter(ChapterTest.id == test_id).first().testQuestions)
     right_count = 0
     for i in answers:
-        all_count += 1
         question = session.query(TestQuestion).filter(TestQuestion.id == i["question_id"]).first()
         if question.multiple_choice:
             if sorted(i["chosen_answers_ids"]) == sorted(
@@ -389,7 +388,8 @@ def sendAnswers():
     a = session.query(ChapterTest).filter(ChapterTest.id == test_id).first()
     count_tests = 0
     for i in a.chapter.chapterTests:
-        if session.query(UserTestAttempt).filter(UserTestAttempt.test_id == i.id, UserTestAttempt.user_id == user_id).first():
+        if session.query(UserTestAttempt).filter(UserTestAttempt.test_id == i.id,
+                                                 UserTestAttempt.user_id == user_id).first():
             count_tests += 1
     if count_tests == len(a.chapter.chapterTests):
         for i in session.query(ChapterRequire).filter(ChapterRequire.required_chapter_id == a.chapter.id).all():
@@ -420,8 +420,9 @@ def sendAnswers():
             session.commit()
     answer["test_id"] = test_id
     answer["right_percent"] = right_count / all_count
-    answer["points"] = right_count / all_count * session.query(ChapterTest).filter(ChapterTest.id == test_id).first().testScore[
-        0].max_score
+    answer["points"] = right_count / all_count * \
+                       session.query(ChapterTest).filter(ChapterTest.id == test_id).first().testScore[
+                           0].max_score
     session.close()
     return answer
 
@@ -444,7 +445,7 @@ def news():
 
 # ______BOT______
 
-@app.route("/Bot/sendMessage", methods=["POST"])
+@app.route("/bot/sendMessage", methods=["POST"])
 @token_required
 def sendMessage():
     messages = [
@@ -475,7 +476,7 @@ def sendMessage():
     ch = ChatBotHistory(user_id=user_id, text=reply, date=datetime.datetime.now(), isReplay=True)
     session.add(ch)
     session.commit()
-    answer = {"message": reply, "date": ch.date.date.strftime("%Y-%m-%d %H:%M:%S")}
+    answer = {"message": reply, "date": ch.date.strftime("%Y-%m-%d %H:%M:%S"), "isReply": True}
 
     return answer
 
@@ -505,7 +506,8 @@ def getLeaderBoard():
     a = sorted(session.query(LeaderBoard).all(), key=lambda x: -x.score)
     for i in a[:min(N, len(a))]:
         user = session.query()
-        answer.append({"user_id": i.user.id, "nickname": i.user.nickname, "firstname": i.user.firstname, "surname": i.user.surname,
+        answer.append({"user_id": i.user.id, "nickname": i.user.nickname, "firstname": i.user.firstname,
+                       "surname": i.user.surname,
                        "img_src": i.user.img_src, "score": i.score, "tests_passed": i.tests_passed})
     session.close()
     return answer
