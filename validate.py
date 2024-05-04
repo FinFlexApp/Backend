@@ -8,7 +8,7 @@ def validate(data, regex):
 
 def validate_password(password: str):
     """Password Validator"""
-    reg = r"[0-9a-zA-Z!@#$%^&*]{8,}/g"
+    reg = r"[0-9a-zA-Z!@#$%^&*]{8,}"
     return validate(password, reg)
 
 
