@@ -25,19 +25,19 @@ def validate_user(**args):
         return {
             'error': 'Нужен Email',
         }
-    if args.get('password'):
+    if not args.get('password'):
         return {
             'error': 'Нужен Password',
         }
-    if args.get('nickname'):
+    if not args.get('nickname'):
         return {
             'error': 'Нужен Nickname',
         }
-    if args.get('firstname'):
+    if not args.get('firstname'):
         return {
             'error': 'Нужен Firstname',
         }
-    if args.get('surname'):
+    if not args.get('surname'):
         return {
             'error': 'Нужен Surname',
         }
