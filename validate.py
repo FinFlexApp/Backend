@@ -8,7 +8,7 @@ def validate(data, regex):
 
 def validate_password(password: str):
     """Password Validator"""
-    reg = r""
+    reg = r"[0-9a-zA-Z!@#$%^&*]{8,}/g"
     return validate(password, reg)
 
 
@@ -21,33 +21,38 @@ def validate_email(email: str):
 def validate_user(**args):
 
     """User Validator"""
-    if not args.get('email') or not args.get('password') or not args.get('nickname') or not args.get(
-            'firstname') or not args.get('surname'):
+    if not args.get('email'):
         return {
-            'email': 'Email is required',
-            'password': 'Password is required',
-            'name': 'Name is required'
+            'error': 'Нужен Email',
         }
-    if not isinstance(args.get('nickname'), str) or \
-            not isinstance(args.get('email'), str) or not isinstance(args.get('password'), str) or not isinstance(
-        args.get('firstname'), str) or not isinstance(args.get('surname'), str):
+    if args.get('password'):
         return {
-            'email': 'Email must be a string',
-            'password': 'Password must be a string',
-            'name': 'Name must be a string'
+            'error': 'Нужен Password',
+        }
+    if args.get('nickname'):
+        return {
+            'error': 'Нужен Nickname',
+        }
+    if args.get('firstname'):
+        return {
+            'error': 'Нужен Firstname',
+        }
+    if args.get('surname'):
+        return {
+            'error': 'Нужен Surname',
         }
     if not validate_email(args.get('email')):
         return {
-            'email': 'Email is invalid'
+            'error': 'Нужен Email'
         }
     if not validate_password(args.get('password')):
         return {
-            'password': 'Password is invalid, Should be atleast 8 characters with \
-                upper and lower case letters, numbers and special characters'
+            'error': 'Пароль недействителен. Он должен содержать не менее 8 символов и состоять из \
+                символов 0-9a-zA-Z!@#$%^&*'
         }
-    if not 0 <= len(args['nickname'].split(' ')) <= 30:
+    if not 2 <= len(args['nickname']) <= 40:
         return {
-            'name': 'Name must be between 2 and 30 words'
+            'error': 'Name must be between 2 and 40 lenth'
         }
     return True
 
@@ -56,16 +61,15 @@ def validate_email_and_password(email, password):
     """Email and Password Validator"""
     if not (email and password):
         return {
-            'email': 'Email is required',
-            'password': 'Password is required'
+            'error': 'Нужен пароль и  email'
         }
     if not validate_email(email):
         return {
-            'email': 'Email is invalid'
+            'error': 'Электронная почта недействительна'
         }
     if not validate_password(password):
         return {
-            'password': 'Password is invalid, Should be atleast 8 characters with \
+            'error': 'Password is invalid, Should be atleast 8 characters with \
                 upper and lower case letters, numbers and special characters'
         }
     return True
