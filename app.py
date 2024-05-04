@@ -167,6 +167,9 @@ def changePassword():
     user_id = json.loads(request.data)['user_id']
     oldPassword = json.loads(request.data)['oldPassword']
     newPassword = json.loads(request.data)['newPassword']
+    is_validated = validate_password(newPassword)
+    if is_validated is not True:
+        return dict(message='Invalid data', data=None, error=is_validated), 400
     user = session.query(User).filter(User.id == user_id).first()
     if user.check_password(oldPassword):
         user.set_password(newPassword)
